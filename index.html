@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eff4df">
+  <title>Mona and the Mossy Isles</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      color-scheme: light;
+      --ink: #253d34;
+      --green: #367758;
+      --paper: #eff4df;
+      --line: #c8d5bd;
+      --orange: #ed7a4a;
+      font-family: 'Outfit', 'Trebuchet MS', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image: radial-gradient(#bbc9ad 0.75px, transparent 0.75px);
+      background-size: 16px 16px;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: column;
+      padding: 18px clamp(12px, 3.4vw, 52px) 12px;
+    }
+
+    .topbar {
+      display: grid;
+      min-height: 60px;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 16px;
+      padding: 0 clamp(2px, 1.5vw, 18px) 14px;
+    }
+
+    .brand { display: flex; min-width: 0; align-items: center; gap: 11px; }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+      place-items: center;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      background: #e8a76f;
+      box-shadow: 3px 3px 0 var(--ink);
+      font-size: 21px;
+      line-height: 1;
+    }
+
+    .brand-copy { min-width: 0; }
+    .brand-name { font-size: 15px; font-weight: 800; line-height: 1.15; }
+    .brand-sub { margin-top: 4px; color: #718073; font-family: 'DM Mono', monospace; font-size: 9px; }
+
+    .collect-counter {
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      gap: 11px;
+      padding: 4px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(250, 251, 239, .87);
+      box-shadow: 0 2px 0 #d4dfc9;
+    }
+
+    .fish-icon { color: #ed8149; font-size: 20px; line-height: 1; }
+    .collect-count { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+    .collect-label { color: #748174; font-size: 10px; }
+
+    .top-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    .icon-button {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(250, 251, 239, .87);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 16px;
+      transition: background .15s ease, transform .15s ease;
+    }
+
+    .icon-button:hover { transform: translateY(-1px); background: #fffdf1; }
+    .icon-button:focus-visible, .start-button:focus-visible, .touch-button:focus-visible { outline: 3px solid #ed8149; outline-offset: 3px; }
+
+    .game-area {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      padding: 1px 0 6px;
+    }
+
+    .island-heading {
+      display: flex;
+      width: min(100%, 1120px);
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+
+    .region-label, .lives-label, .board-footer, .world-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .region-label { color: #718073; }
+    .world-label { color: #a56c40; }
+
+    .lives { display: flex; align-items: center; gap: 8px; }
+    .lives-label { color: #718073; font-size: 9px; }
+    .hearts { display: flex; gap: 4px; }
+    .heart { color: #e66f56; font-size: 16px; line-height: 1; transition: opacity .18s ease, transform .18s ease; }
+    .heart.lost { opacity: .18; transform: scale(.82); }
+
+    .game-frame {
+      position: relative;
+      width: min(100%, 1120px, calc((100vh - 166px) * 1.7778));
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 3px solid var(--ink);
+      border-radius: 9px;
+      background: #a3ded0;
+      box-shadow: 6px 6px 0 rgba(37, 61, 52, .16);
+      isolation: isolate;
+    }
+
+    canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+    .game-overlay {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(22, 44, 38, .35);
+      opacity: 1;
+      transition: opacity .2s ease;
+    }
+
+    .game-overlay[hidden] { display: none; }
+
+    .overlay-panel {
+      width: min(100%, 370px);
+      padding: 26px 27px 24px;
+      border: 2px solid var(--ink);
+      border-radius: 9px;
+      background: #f5f1d9;
+      box-shadow: 5px 5px 0 rgba(37, 61, 52, .38);
+      text-align: center;
+      animation: settle .32s ease both;
+    }
+
+    .overlay-kicker { color: var(--green); font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+    .overlay-panel h1 { margin: 7px 0 8px; font-size: clamp(25px, 5vw, 32px); font-weight: 800; line-height: 1.02; }
+    .overlay-description { max-width: 270px; margin: 0 auto 18px; color: #687367; font-size: 13px; line-height: 1.55; }
+    .start-button { min-height: 42px; padding: 0 22px; border: 2px solid var(--ink); border-radius: 6px; background: #91bc77; box-shadow: 3px 3px 0 var(--ink); color: #1f382d; cursor: pointer; font-size: 13px; font-weight: 800; transition: transform .14s ease, box-shadow .14s ease; }
+    .start-button:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+    @keyframes settle { from { opacity: 0; transform: translateY(7px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .board-footer { display: flex; width: min(100%, 1120px); min-height: 36px; align-items: center; justify-content: space-between; gap: 12px; color: #718073; font-size: 9px; }
+    .footer-mark { display: inline-flex; align-items: center; gap: 7px; }
+    .footer-dot { width: 7px; height: 7px; border-radius: 50%; background: #7ba56b; box-shadow: 0 0 0 2px rgba(123, 165, 107, .2); }
+
+    .touch-controls { display: none; align-items: center; gap: 6px; }
+    .touch-button { display: grid; width: 36px; height: 32px; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: rgba(250, 251, 239, .93); color: var(--ink); cursor: pointer; font-size: 17px; touch-action: none; user-select: none; }
+    .touch-button.jump { width: 48px; border-color: #c99067; background: #f1d6a9; font-size: 10px; font-weight: 700; }
+    .touch-button.is-down { transform: translateY(1px); background: #dfe9ce; }
+
+    .toast {
+      position: absolute;
+      z-index: 1;
+      top: 13px;
+      left: 50%;
+      padding: 6px 10px;
+      border: 1px solid rgba(37, 61, 52, .32);
+      border-radius: 5px;
+      background: rgba(248, 244, 222, .92);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -4px);
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 600px) {
+      .app { padding: 11px 10px 8px; }
+      .topbar { min-height: 51px; grid-template-columns: 1fr auto auto; gap: 9px; padding: 0 2px 9px; }
+      .brand-mark { width: 33px; height: 33px; flex-basis: 33px; }
+      .brand { gap: 9px; }
+      .brand-name { font-size: 13px; }
+      .brand-sub { font-size: 8px; }
+      .collect-counter { min-height: 34px; gap: 7px; padding: 3px 8px; }
+      .collect-label { display: none; }
+      .top-actions { gap: 5px; }
+      .icon-button { width: 32px; height: 32px; }
+      .game-area { gap: 8px; }
+      .game-frame { width: 100%; border-width: 2px; border-radius: 7px; }
+      .overlay-panel { padding: 19px 17px 18px; }
+      .overlay-description { margin-bottom: 13px; font-size: 12px; }
+      .region-label, .world-label { font-size: 8px; }
+      .lives { gap: 6px; }
+      .lives-label { font-size: 8px; }
+      .heart { font-size: 14px; }
+      .board-footer { min-height: 39px; font-size: 8px; }
+      .touch-controls { display: flex; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">◈</div>
+        <div class="brand-copy">
+          <div class="brand-name">Mona's trail</div>
+          <div class="brand-sub">A LITTLE ISLAND ADVENTURE</div>
+        </div>
+      </div>
+
+      <div class="collect-counter" aria-label="Fish collected">
+        <span class="fish-icon" aria-hidden="true">◆</span>
+        <span class="collect-count" id="fish-count">00 / 05</span>
+        <span class="collect-label">fish</span>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-button" id="pause-button" type="button" aria-label="Pause game" title="Pause">Ⅱ</button>
+        <button class="icon-button" id="restart-button" type="button" aria-label="Restart game" title="Restart">↻</button>
+      </div>
+    </header>
+
+    <main class="game-area">
+      <div class="island-heading">
+        <span class="region-label">CHAPTER 01 &nbsp;·&nbsp; MOSSY ISLES</span>
+        <div class="lives" aria-label="Lives remaining">
+          <span class="lives-label">LIVES</span>
+          <span class="hearts" id="hearts"><span class="heart" aria-hidden="true">&#9829;</span><span class="heart" aria-hidden="true">&#9829;</span><span class="heart" aria-hidden="true">&#9829;</span></span>
+        </div>
+      </div>
+
+      <div class="game-frame" id="game-frame">
+        <canvas id="game" width="960" height="540" aria-label="Mona the pixel cat explores a colorful island"></canvas>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        <div class="game-overlay" id="overlay">
+          <div class="overlay-panel">
+            <div class="overlay-kicker">A TINY TALE OF THE TIDE</div>
+            <h1 id="overlay-title">Mona &amp; the<br>Mossy Isles</h1>
+            <p class="overlay-description" id="overlay-description">The tide is turning. Five little fish have vanished into the forest.</p>
+            <button class="start-button" id="start-button" type="button">Set out <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+      </div>
+
+      <footer class="board-footer">
+        <span class="footer-mark"><span class="footer-dot" aria-hidden="true"></span><span class="world-label">THE GREENWARD COAST</span></span>
+        <div class="touch-controls" aria-label="Touch controls">
+          <button class="touch-button" type="button" data-control="left" aria-label="Move left">←</button>
+          <button class="touch-button" type="button" data-control="right" aria-label="Move right">→</button>
+          <button class="touch-button jump" type="button" data-control="jump" aria-label="Jump">JUMP</button>
+        </div>
+        <span id="status-label">SUNLIT &nbsp;·&nbsp; LOW TIDE</span>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const GROUND = 422;
+      const WORLD_WIDTH = 4690;
+      const GRAVITY = 1520;
+      const JUMP_SPEED = -552;
+      const WALK_SPEED = 225;
+
+      const islands = [
+        { x: -80, w: 735 },
+        { x: 775, w: 760 },
+        { x: 1665, w: 765 },
+        { x: 2560, w: 800 },
+        { x: 3490, w: 1320 }
+      ];
+
+      const branches = [
+        { x: 790, y: 350, w: 75 }, { x: 935, y: 331, w: 84 },
+        { x: 1257, y: 354, w: 84 }, { x: 1684, y: 349, w: 82 },
+        { x: 1888, y: 330, w: 74 }, { x: 2170, y: 353, w: 92 },
+        { x: 2580, y: 349, w: 80 }, { x: 2780, y: 324, w: 87 },
+        { x: 3115, y: 351, w: 82 }, { x: 3510, y: 353, w: 82 },
+        { x: 3778, y: 330, w: 92 }, { x: 4090, y: 347, w: 92 }
+      ];
+
+      const initialFish = [
+        { x: 360, y: 337 }, { x: 1120, y: 332 }, { x: 2015, y: 336 },
+        { x: 2930, y: 322 }, { x: 3900, y: 332 }
+      ];
+
+      const enemies = [
+        { x: 530, min: 490, max: 594, speed: 43, phase: 0 },
+        { x: 1355, min: 1292, max: 1460, speed: 48, phase: 1.8 },
+        { x: 2250, min: 2158, max: 2335, speed: 39, phase: 3.3 },
+        { x: 3260, min: 3168, max: 3334, speed: 46, phase: .8 },
+        { x: 4290, min: 4225, max: 4400, speed: 51, phase: 2.4 }
+      ];
+
+      const trees = [];
+      for (let group = 0; group < 19; group++) {
+        const start = 65 + group * 248;
+        for (let tree = 0; tree < 3; tree++) {
+          const x = start + tree * 63 + ((group * 41 + tree * 29) % 37);
+          if (islands.some(island => x > island.x + 13 && x < island.x + island.w - 12)) {
+            trees.push({ x, scale: .73 + ((group * 7 + tree * 3) % 5) * .1, shade: (group * 3 + tree) % 4 });
+          }
+        }
+      }
+
+      const palette = ['#37845f', '#4b9668', '#317956', '#5ca36e'];
+      const keys = new Set();
+      const pressed = new Set();
+      const touch = { left: false, right: false, jump: false };
+      const overlay = document.getElementById('overlay');
+      const overlayTitle = document.getElementById('overlay-title');
+      const overlayDescription = document.getElementById('overlay-description');
+      const startButton = document.getElementById('start-button');
+      const hearts = [...document.querySelectorAll('.heart')];
+      const fishCount = document.getElementById('fish-count');
+      const toast = document.getElementById('toast');
+      const pauseButton = document.getElementById('pause-button');
+
+      const player = { x: 82, y: GROUND - 38, w: 34, h: 38, vx: 0, vy: 0, onGround: true, facing: 1, invulnerable: 0 };
+      let fish = [];
+      let state = 'ready';
+      let cameraX = 0;
+      let collected = 0;
+      let lives = 3;
+      let lastTime = 0;
+      let animationTime = 0;
+      let toastTimeout;
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        ctx.imageSmoothingEnabled = false;
+      }
+
+      function say(message) {
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.clearTimeout(toastTimeout);
+        toastTimeout = window.setTimeout(() => toast.classList.remove('visible'), 1250);
+      }
+
+      function updateHud() {
+        fishCount.textContent = `${String(collected).padStart(2, '0')} / 05`;
+        hearts.forEach((heart, index) => heart.classList.toggle('lost', index >= lives));
+      }
+
+      function showOverlay(kind) {
+        state = kind;
+        overlay.hidden = false;
+        if (kind === 'ready') {
+          overlayTitle.innerHTML = 'Mona &amp; the<br>Mossy Isles';
+          overlayDescription.textContent = 'The tide is turning. Five little fish have vanished into the forest.';
+          startButton.innerHTML = 'Set out <span aria-hidden="true">→</span>';
+          startButton.focus({ preventScroll: true });
+        } else if (kind === 'paused') {
+          overlayTitle.textContent = 'A quiet moment';
+          overlayDescription.textContent = 'The island can wait.';
+          startButton.innerHTML = 'Keep going <span aria-hidden="true">→</span>';
+          startButton.focus({ preventScroll: true });
+        } else if (kind === 'over') {
+          overlayTitle.textContent = 'The tide came in';
+          overlayDescription.textContent = 'The little island will be right here when Mona is ready.';
+          startButton.innerHTML = 'Try again <span aria-hidden="true">↻</span>';
+          startButton.focus({ preventScroll: true });
+        } else {
+          overlayTitle.textContent = 'Home before sundown';
+          overlayDescription.textContent = 'Every lost fish found. Mona made it back through the greenward coast.';
+          startButton.innerHTML = 'Play again <span aria-hidden="true">↻</span>';
+          startButton.focus({ preventScroll: true });
+        }
+        pauseButton.setAttribute('aria-label', kind === 'paused' ? 'Resume game' : 'Pause game');
+      }
+
+      function startGame() {
+        if (state === 'over' || state === 'won') resetGame();
+        state = 'playing';
+        overlay.hidden = true;
+        pauseButton.setAttribute('aria-label', 'Pause game');
+        lastTime = performance.now();
+      }
+
+      function resetGame() {
+        lives = 3;
+        collected = 0;
+        fish = initialFish.map(item => ({ ...item, found: false }));
+        enemies.forEach(enemy => { enemy.x = enemy.min + (enemy.max - enemy.min) * .36; });
+        player.x = 82;
+        player.y = GROUND - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+        player.facing = 1;
+        player.invulnerable = 0;
+        cameraX = 0;
+        updateHud();
+      }
+
+      function getFloorAt(x) {
+        for (const island of islands) {
+          if (x > island.x && x < island.x + island.w) return GROUND;
+        }
+        return null;
+      }
+
+      function getSupport(x, y, previousY, velocityY) {
+        let best = getFloorAt(x + player.w / 2);
+        for (const branch of branches) {
+          if (x + player.w > branch.x && x < branch.x + branch.w && velocityY >= 0 && previousY + player.h <= branch.y + 4 && y + player.h >= branch.y) {
+            if (best === null || branch.y < best) best = branch.y;
+          }
+        }
+        return best;
+      }
+
+      function loseLife(message) {
+        if (player.invulnerable > 0 || state !== 'playing') return;
+        lives--;
+        updateHud();
+        if (lives <= 0) {
+          showOverlay('over');
+          return;
+        }
+        const checkpoints = [82, 940, 1840, 2730, 3610];
+        const nextCheckpoint = checkpoints.filter(point => point < player.x - 450).pop() ?? 82;
+        player.x = nextCheckpoint;
+        player.y = GROUND - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+        player.invulnerable = 1.7;
+        cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * .34));
+        say(message);
+      }
+
+      function update(dt) {
+        animationTime += dt;
+        if (state !== 'playing') return;
+
+        const left = keys.has('ArrowLeft') || keys.has('KeyA') || touch.left;
+        const right = keys.has('ArrowRight') || keys.has('KeyD') || touch.right;
+        const jump = keys.has('Space') || keys.has('ArrowUp') || keys.has('KeyW') || touch.jump;
+        player.vx = (Number(right) - Number(left)) * WALK_SPEED;
+        if (player.vx) player.facing = Math.sign(player.vx);
+
+        if (jump && player.onGround && !pressed.has('jump')) {
+          player.vy = JUMP_SPEED;
+          player.onGround = false;
+        }
+        if (jump) pressed.add('jump');
+        else pressed.delete('jump');
+
+        const oldY = player.y;
+        player.x = Math.max(0, Math.min(WORLD_WIDTH - player.w, player.x + player.vx * dt));
+        player.vy = Math.min(760, player.vy + GRAVITY * dt);
+        player.y += player.vy * dt;
+        const support = getSupport(player.x, player.y, oldY, player.vy);
+        if (support !== null && player.y + player.h >= support && oldY + player.h <= support + 6 && player.vy >= 0) {
+          player.y = support - player.h;
+          player.vy = 0;
+          player.onGround = true;
+        } else {
+          player.onGround = false;
+        }
+
+        if (player.y > H + 65) {
+          loseLife('Mona found the sea!');
+          return;
+        }
+
+        for (const enemy of enemies) {
+          enemy.x += enemy.speed * dt;
+          if (enemy.x < enemy.min || enemy.x > enemy.max) {
+            enemy.x = Math.max(enemy.min, Math.min(enemy.x, enemy.max));
+            enemy.speed *= -1;
+          }
+          const closeX = Math.abs(player.x + player.w / 2 - enemy.x) < 27;
+          const closeY = player.y + player.h > GROUND - 24 && player.y < GROUND + 3;
+          if (closeX && closeY && player.invulnerable <= 0) {
+            loseLife('A crab gave Mona a pinch!');
+            return;
+          }
+        }
+
+        player.invulnerable = Math.max(0, player.invulnerable - dt);
+
+        for (const item of fish) {
+          if (item.found) continue;
+          const dx = player.x + player.w / 2 - item.x;
+          const dy = player.y + player.h / 2 - item.y;
+          if (dx * dx + dy * dy < 33 * 33) {
+            item.found = true;
+            collected++;
+            updateHud();
+            say(collected === 5 ? 'The path home is open!' : 'A little fish, safe at last!');
+          }
+        }
+
+        if (player.x > 4480) {
+          if (collected === 5) showOverlay('won');
+          else {
+            player.x = 4480;
+            say('The island gate needs five fish.');
+          }
+        }
+
+        const targetCamera = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * .34));
+        cameraX += (targetCamera - cameraX) * Math.min(1, dt * 5);
+      }
+
+      function rect(x, y, w, h, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+      }
+
+      function drawCloud(x, y, scale) {
+        const cloudX = ((x - cameraX * .12 + W * 2) % (W + 180)) - 90;
+        rect(cloudX, y + 9 * scale, 62 * scale, 13 * scale, '#eff1d5');
+        rect(cloudX + 10 * scale, y, 22 * scale, 18 * scale, '#eff1d5');
+        rect(cloudX + 27 * scale, y - 6 * scale, 26 * scale, 24 * scale, '#eff1d5');
+        rect(cloudX + 49 * scale, y + 5 * scale, 20 * scale, 17 * scale, '#eff1d5');
+        rect(cloudX + 3 * scale, y + 23 * scale, 65 * scale, 4 * scale, '#d9e5c6');
+      }
+
+      function drawSky() {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#9bdbd1');
+        sky.addColorStop(.67, '#cae8c3');
+        sky.addColorStop(1, '#e8e7b0');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+        rect(763, 67, 32, 32, '#f4cb79');
+        rect(755, 75, 48, 16, '#f4cb79');
+        rect(772, 59, 14, 48, '#f4cb79');
+        rect(771, 68, 17, 29, '#f7dc91');
+        drawCloud(120, 88, 1);
+        drawCloud(594, 155, .74);
+        drawCloud(884, 73, .68);
+
+        ctx.fillStyle = '#9bcfb1';
+        ctx.beginPath();
+        ctx.moveTo(0, 355);
+        for (let x = 0; x <= W + 30; x += 30) {
+          const y = 317 + Math.sin((x + cameraX * .11) * .008) * 17 + Math.sin((x + cameraX * .11) * .019) * 8;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, 438);
+        ctx.lineTo(0, 438);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#75b990';
+        ctx.beginPath();
+        ctx.moveTo(0, 383);
+        for (let x = 0; x <= W + 30; x += 22) {
+          const y = 353 + Math.sin((x + cameraX * .2) * .009) * 12 + Math.sin((x + cameraX * .2) * .024) * 4;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(W, 439);
+        ctx.lineTo(0, 439);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawWater() {
+        const water = ctx.createLinearGradient(0, GROUND, 0, H);
+        water.addColorStop(0, '#5eafaa');
+        water.addColorStop(1, '#347d86');
+        ctx.fillStyle = water;
+        ctx.fillRect(0, GROUND, W, H - GROUND);
+        for (let row = 0; row < 4; row++) {
+          const y = 452 + row * 24;
+          const spacing = 117 + row * 11;
+          const offset = (animationTime * (16 + row * 5) + row * 47) % spacing;
+          ctx.fillStyle = row % 2 ? '#89c9b3' : '#a5d6b4';
+          for (let x = -spacing; x < W + spacing; x += spacing) {
+            rect(x - offset, y + Math.sin(x * .04 + animationTime + row) * 3, 36 + row * 4, 3, ctx.fillStyle);
+          }
+        }
+      }
+
+      function drawIslands() {
+        for (const island of islands) {
+          const x = island.x - cameraX;
+          if (x > W || x + island.w < 0) continue;
+          rect(x, GROUND, island.w, H - GROUND, '#dca76f');
+          rect(x, GROUND + 10, island.w, 3, '#e8bd81');
+          rect(x + 8, GROUND + 27, Math.max(0, island.w - 25), 3, '#ce9566');
+          rect(x + 24, GROUND + 46, Math.max(0, island.w - 47), 3, '#eac18a');
+          rect(x, GROUND, island.w, 8, '#397b54');
+          rect(x + 4, GROUND + 6, Math.max(0, island.w - 8), 5, '#72a958');
+          for (let wx = Math.max(island.x + 14, Math.floor(cameraX / 36) * 36); wx < Math.min(island.x + island.w - 8, cameraX + W); wx += 36) {
+            const xx = wx - cameraX;
+            const seed = Math.floor(wx / 36);
+            rect(xx, GROUND + 18 + ((seed * 17) % 13), 5, 3, '#cb9261');
+            if (seed % 3 === 0) rect(xx + 13, GROUND + 39, 4, 3, '#eac18a');
+          }
+        }
+      }
+
+      function drawTree(tree) {
+        const x = tree.x - cameraX;
+        if (x < -80 || x > W + 80) return;
+        const s = tree.scale;
+        const trunk = 12 * s;
+        const top = GROUND - 106 * s;
+        rect(x - trunk / 2, GROUND - 22 * s, trunk, 23 * s, '#85593e');
+        rect(x - trunk / 2 - 3 * s, GROUND - 8 * s, trunk + 6 * s, 5 * s, '#694b3c');
+        rect(x - 4 * s, GROUND - 49 * s, 34 * s, 7 * s, '#79533b');
+        rect(x - 27 * s, GROUND - 52 * s, 30 * s, 7 * s, '#79533b');
+        const shade = palette[tree.shade];
+        rect(x - 24 * s, top + 32 * s, 48 * s, 25 * s, shade);
+        rect(x - 19 * s, top + 16 * s, 39 * s, 26 * s, shade);
+        rect(x - 12 * s, top + 3 * s, 28 * s, 24 * s, shade);
+        rect(x - 5 * s, top - 6 * s, 13 * s, 19 * s, shade);
+        rect(x - 17 * s, top + 19 * s, 13 * s, 5 * s, '#75ad70');
+        rect(x + 3 * s, top + 38 * s, 13 * s, 5 * s, '#75ad70');
+        rect(x + 24 * s, top + 43 * s, 8 * s, 7 * s, '#438751');
+      }
+
+      function drawBranches() {
+        for (const branch of branches) {
+          const x = branch.x - cameraX;
+          if (x + branch.w < 0 || x > W) continue;
+          rect(x + 6, branch.y + 7, branch.w - 4, 8, '#81573d');
+          rect(x, branch.y + 3, branch.w, 7, '#976747');
+          rect(x - 3, branch.y, branch.w + 6, 6, '#4b8e5d');
+          rect(x + 8, branch.y - 3, 16, 4, '#79b46e');
+          rect(x + branch.w - 24, branch.y - 3, 13, 4, '#79b46e');
+        }
+      }
+
+      function drawFlower(x, groundY, shade) {
+        const sx = x - cameraX;
+        if (sx < -10 || sx > W + 10) return;
+        rect(sx, groundY - 9, 2, 9, '#47764a');
+        rect(sx - 3, groundY - 12, 3, 3, shade);
+        rect(sx + 2, groundY - 12, 3, 3, shade);
+        rect(sx - 1, groundY - 15, 3, 3, '#f0d479');
+        rect(sx - 1, groundY - 10, 3, 3, shade);
+      }
+
+      function drawFish(item) {
+        if (item.found) return;
+        const x = item.x - cameraX;
+        if (x < -30 || x > W + 30) return;
+        const y = item.y + Math.sin(animationTime * 3 + item.x) * 4;
+        const bob = Math.round(y);
+        const glow = .1 + Math.sin(animationTime * 4 + item.x) * .04;
+        ctx.globalAlpha = .62 + glow;
+        rect(x - 11, bob - 2, 23, 15, '#ed924d');
+        rect(x - 5, bob - 8, 12, 6, '#f3b459');
+        rect(x - 5, bob + 13, 12, 5, '#da724b');
+        rect(x + 11, bob + 2, 8, 10, '#e87c47');
+        rect(x + 4, bob + 1, 3, 3, '#fff6d9');
+        rect(x + 5, bob + 2, 2, 2, '#263d35');
+        ctx.globalAlpha = 1;
+      }
+
+      function drawCrab(enemy) {
+        const x = enemy.x - cameraX;
+        if (x < -35 || x > W + 35) return;
+        const bob = Math.sin(animationTime * 8 + enemy.phase) > .75 ? -2 : 0;
+        rect(x - 14, GROUND - 12 + bob, 28, 10, '#bf654e');
+        rect(x - 10, GROUND - 17 + bob, 20, 9, '#e58259');
+        rect(x - 8, GROUND - 21 + bob, 5, 6, '#f3cd91');
+        rect(x + 4, GROUND - 21 + bob, 5, 6, '#f3cd91');
+        rect(x - 7, GROUND - 19 + bob, 3, 4, '#293e34');
+        rect(x + 5, GROUND - 19 + bob, 3, 4, '#293e34');
+        rect(x - 14, GROUND - 7 + bob, 4, 5, '#945342');
+        rect(x + 10, GROUND - 7 + bob, 4, 5, '#945342');
+        rect(x - 18, GROUND - 9 + bob, 5, 4, '#d17b57');
+        rect(x + 13, GROUND - 9 + bob, 5, 4, '#d17b57');
+      }
+
+      function drawGate() {
+        const x = 4530 - cameraX;
+        if (x < -100 || x > W + 100) return;
+        rect(x - 11, GROUND - 65, 13, 65, '#815640');
+        rect(x + 38, GROUND - 65, 13, 65, '#815640');
+        rect(x - 17, GROUND - 70, 71, 10, '#476e49');
+        rect(x - 7, GROUND - 56, 43, 6, '#c68b59');
+        rect(x - 2, GROUND - 50, 34, 43, '#367d63');
+        rect(x + 7, GROUND - 43, 16, 36, '#e8b873');
+        rect(x + 13, GROUND - 34, 5, 6, '#865a3e');
+        rect(x + 4, GROUND - 60, 25, 5, '#f0d17d');
+      }
+
+      function drawPlayer() {
+        const x = Math.round(player.x - cameraX);
+        const y = Math.round(player.y + (player.onGround ? Math.sin(animationTime * 11) * 1 : 0));
+        if (player.invulnerable > 0 && Math.floor(animationTime * 13) % 2 === 0) return;
+        const direction = player.facing;
+        rect(x + 7, y + 8, 21, 27, '#34473e');
+        rect(x + 9, y + 7, 19, 26, '#f4eee0');
+        rect(x + 4, y - 2, 27, 23, '#34473e');
+        rect(x + 6, y + 1, 25, 19, '#f7f1e2');
+        rect(x + 5, y - 12, 9, 14, '#34473e');
+        rect(x + 6, y - 12, 7, 10, '#f7f1e2');
+        rect(x + 7, y - 9, 4, 5, '#dd897e');
+        rect(x + 23, y - 12, 9, 14, '#34473e');
+        rect(x + 24, y - 12, 7, 10, '#f7f1e2');
+        rect(x + 26, y - 9, 4, 5, '#dd897e');
+        rect(x + 11, y + 7, 4, 6, '#6f9c67');
+        rect(x + 23, y + 7, 4, 6, '#6f9c67');
+        if (direction > 0) rect(x + 21, y + 7, 3, 5, '#293f38');
+        else rect(x + 12, y + 7, 3, 5, '#293f38');
+        rect(x + 17, y + 13, 4, 3, '#c97671');
+        rect(x + 9, y + 19, 20, 6, '#e2a56c');
+        rect(x + 6, y + 25, 11, 9, '#536c4e');
+        rect(x + 20, y + 25, 11, 9, '#536c4e');
+        const step = player.onGround && Math.abs(player.vx) > 1 && Math.floor(animationTime * 12) % 2 ? 3 : 0;
+        rect(x + 8 + step, y + 33, 9, 5, '#34473e');
+        rect(x + 20 - step, y + 33, 9, 5, '#34473e');
+        rect(x + 8 + step, y + 35, 10, 3, '#e8b875');
+        rect(x + 19 - step, y + 35, 10, 3, '#e8b875');
+      }
+
+      function draw() {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / W;
+        const scaleY = rect.height / H;
+        ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        drawSky();
+        drawWater();
+        drawIslands();
+        for (const tree of trees) drawTree(tree);
+        drawBranches();
+        for (const island of islands) {
+          for (let wx = island.x + 35; wx < island.x + island.w - 20; wx += 167) {
+            const shade = Math.floor(wx / 167) % 2 ? '#f2d27d' : '#e6a8a2';
+            drawFlower(wx + 51, GROUND + 7, shade);
+          }
+        }
+        for (const item of fish) drawFish(item);
+        drawGate();
+        for (const enemy of enemies) drawCrab(enemy);
+        drawPlayer();
+      }
+
+      function loop(time) {
+        const dt = Math.min(.034, Math.max(0, (time - lastTime) / 1000));
+        lastTime = time;
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      startButton.addEventListener('click', startGame);
+
+      pauseButton.addEventListener('click', () => {
+        if (state === 'playing') showOverlay('paused');
+        else if (state === 'paused') startGame();
+      });
+
+      document.getElementById('restart-button').addEventListener('click', () => {
+        resetGame();
+        showOverlay('ready');
+      });
+
+      window.addEventListener('keydown', event => {
+        const keysToPrevent = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space'];
+        if (keysToPrevent.includes(event.code)) event.preventDefault();
+        keys.add(event.code);
+        if (event.code === 'Escape' && state === 'playing') showOverlay('paused');
+        else if ((event.code === 'Enter' || event.code === 'Space') && state !== 'playing') startGame();
+      });
+
+      window.addEventListener('keyup', event => keys.delete(event.code));
+      window.addEventListener('blur', () => { keys.clear(); touch.left = touch.right = touch.jump = false; });
+      window.addEventListener('resize', resize);
+
+      for (const button of document.querySelectorAll('.touch-button')) {
+        const control = button.dataset.control;
+        const release = event => {
+          event.preventDefault();
+          touch[control] = false;
+          button.classList.remove('is-down');
+        };
+        button.addEventListener('pointerdown', event => {
+          event.preventDefault();
+          touch[control] = true;
+          button.classList.add('is-down');
+          button.setPointerCapture(event.pointerId);
+        });
+        button.addEventListener('pointerup', release);
+        button.addEventListener('pointercancel', release);
+        button.addEventListener('lostpointercapture', release);
+      }
+
+      fish = initialFish.map(item => ({ ...item, found: false }));
+      resize();
+      updateHud();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
