@@ -36,7 +36,7 @@ Then visit [http://localhost:8000](http://localhost:8000).
 1. Choose **Set out** on the title screen.
 2. Explore the islands and collect all **5 fish**.
 3. Avoid crabs and watch your footing around gaps—collisions and falls cost a life.
-4. Once every fish is collected, reach the gate at the far right to win.
+4. Collect every fish and reach the gate to unlock the next level. Finish all three levels to win.
 
 You start with **3 lives**. Pause, resume, or restart the adventure whenever needed.
 
