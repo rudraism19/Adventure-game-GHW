@@ -267,7 +267,7 @@
 
     <main class="game-area">
       <div class="island-heading">
-        <span class="region-label">CHAPTER 01 &nbsp;·&nbsp; MOSSY ISLES</span>
+        <span class="region-label" id="level-label">LEVEL 01 &nbsp;·&nbsp; MOSSY ISLES</span>
         <div class="lives" aria-label="Lives remaining">
           <span class="lives-label">LIVES</span>
           <span class="hearts" id="hearts"><span class="heart" aria-hidden="true">&#9829;</span><span class="heart" aria-hidden="true">&#9829;</span><span class="heart" aria-hidden="true">&#9829;</span></span>
@@ -308,13 +308,20 @@
       const W = canvas.width;
       const H = canvas.height;
       const GROUND = 422;
-      const WORLD_WIDTH = 4690;
+      let WORLD_WIDTH = 4690;
+      let gateX = 4530;
+      const LEVELS = [
+        { name: 'MOSSY ISLES', width: 4690, speed: 1, sky: ['#9bdbd1', '#cae8c3', '#e8e7b0'] },
+        { name: 'EMBER GROVE', width: 5150, speed: 1.12, sky: ['#f2c18b', '#f1d4a0', '#f4e2b4'] },
+        { name: 'MOONLIT SHOALS', width: 5600, speed: 1.24, sky: ['#819bc5', '#a5c4d0', '#d4dfc3'] }
+      ];
+      let levelIndex = 0;
       const GRAVITY = 1520;
       const JUMP_SPEED = -552;
       const WALK_SPEED = 225;
       const SPRINT_MULTIPLIER = 1.55;
 
-      const islands = [
+      let islands = [
         { x: -80, w: 735 },
         { x: 775, w: 760 },
         { x: 1665, w: 765 },
@@ -322,7 +329,7 @@
         { x: 3490, w: 1320 }
       ];
 
-      const branches = [
+      let branches = [
         { x: 790, y: 350, w: 75 }, { x: 935, y: 331, w: 84 },
         { x: 1257, y: 354, w: 84 }, { x: 1684, y: 349, w: 82 },
         { x: 1888, y: 330, w: 74 }, { x: 2170, y: 353, w: 92 },
@@ -331,12 +338,12 @@
         { x: 3778, y: 330, w: 92 }, { x: 4090, y: 347, w: 92 }
       ];
 
-      const initialFish = [
+      let initialFish = [
         { x: 360, y: 337 }, { x: 1120, y: 332 }, { x: 2015, y: 336 },
         { x: 2930, y: 322 }, { x: 3900, y: 332 }
       ];
 
-      const enemies = [
+      let enemies = [
         { x: 530, min: 490, max: 594, speed: 43, phase: 0 },
         { x: 1355, min: 1292, max: 1460, speed: 48, phase: 1.8 },
         { x: 2250, min: 2158, max: 2335, speed: 39, phase: 3.3 },
@@ -344,6 +351,10 @@
         { x: 4290, min: 4225, max: 4400, speed: 51, phase: 2.4 }
       ];
 
+      const BASE_ISLANDS = islands.map(item => ({ ...item }));
+      const BASE_BRANCHES = branches.map(item => ({ ...item }));
+      const BASE_FISH = initialFish.map(item => ({ ...item }));
+      const BASE_ENEMIES = enemies.map(item => ({ ...item }));
       const trees = [];
       for (let group = 0; group < 19; group++) {
         const start = 65 + group * 248;
@@ -433,7 +444,47 @@
         lastTime = performance.now();
       }
 
+      function loadLevel(index, announce = true) {
+        levelIndex = index;
+        const level = LEVELS[index];
+        const scale = level.width / 4690;
+        WORLD_WIDTH = level.width;
+        gateX = Math.round(4530 * scale);
+        islands = BASE_ISLANDS.map(item => ({ x: Math.round(item.x * scale), w: Math.round(item.w * scale) }));
+        branches = BASE_BRANCHES.map(item => ({ x: Math.round(item.x * scale), y: item.y, w: Math.round(item.w * scale) }));
+        initialFish = BASE_FISH.map(item => ({ x: Math.round(item.x * scale), y: item.y }));
+        enemies = BASE_ENEMIES.map(item => ({ ...item, x: Math.round(item.x * scale), min: Math.round(item.min * scale), max: Math.round(item.max * scale), speed: item.speed * level.speed }));
+        trees.length = 0;
+        for (let group = 0; group < Math.ceil(19 * scale); group++) {
+          const start = 65 + group * 248;
+          for (let tree = 0; tree < 3; tree++) {
+            const x = Math.round((start + tree * 63 + ((group * 41 + tree * 29) % 37)) * scale);
+            if (islands.some(island => x > island.x + 13 && x < island.x + island.w - 12)) trees.push({ x, scale: .73 + ((group * 7 + tree * 3) % 5) * .1, shade: (group * 3 + tree + index) % 4 });
+          }
+        }
+        collected = 0;
+        fish = initialFish.map(item => ({ ...item, found: false }));
+        powerups = [
+          { x: Math.round(650 * scale), y: 365, type: 'shield', collected: false },
+          { x: Math.round(1550 * scale), y: 365, type: 'speed', collected: false },
+          { x: Math.round(2700 * scale), y: 345, type: 'magnet', collected: false },
+          { x: Math.round(3700 * scale), y: 365, type: 'shield', collected: false }
+        ];
+        activePowerup = null; powerupTimer = 0;
+        player.x = 82; player.y = GROUND - player.h; player.vx = 0; player.vy = 0;
+        player.onGround = true; player.jumpsRemaining = 2; player.invulnerable = 0;
+        cameraX = 0;
+        document.getElementById('level-label').textContent = `LEVEL ${String(index + 1).padStart(2, '0')} · ${level.name}`;
+        document.documentElement.style.setProperty('--level-sky-top', level.sky[0]);
+        document.documentElement.style.setProperty('--level-sky-mid', level.sky[1]);
+        document.documentElement.style.setProperty('--level-sky-low', level.sky[2]);
+        updateHud();
+        if (announce) say(`Level ${index + 1}: ${level.name}!`);
+      }
+
       function resetGame() {
+        levelIndex = 0;
+        loadLevel(0, false);
         lives = 3;
         collected = 0;
         fish = initialFish.map(item => ({ ...item, found: false }));
@@ -574,11 +625,13 @@
           }
         }
 
-        if (player.x > 4480) {
-          if (collected === 5) showOverlay('won');
-          else {
-            player.x = 4480;
-            say('The island gate needs five fish.');
+        if (player.x > gateX - 50) {
+          if (collected === initialFish.length) {
+            if (levelIndex < LEVELS.length - 1) loadLevel(levelIndex + 1, true);
+            else showOverlay('won');
+          } else {
+            player.x = gateX - 50;
+            say('The island gate needs every fish!');
           }
         }
 
@@ -767,7 +820,7 @@
       }
 
       function drawGate() {
-        const x = 4530 - cameraX;
+        const x = gateX - cameraX;
         if (x < -100 || x > W + 100) return;
         rect(x - 11, GROUND - 65, 13, 65, '#815640');
         rect(x + 38, GROUND - 65, 13, 65, '#815640');
