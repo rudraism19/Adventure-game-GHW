@@ -294,7 +294,7 @@
           <button class="touch-button" type="button" data-control="right" aria-label="Move right">→</button>
           <button class="touch-button jump" type="button" data-control="jump" aria-label="Jump">JUMP</button>
         </div>
-        <span id="status-label">SUNLIT &nbsp;·&nbsp; LOW TIDE</span>
+        <span id="status-label">SHIFT SPRINT &nbsp;·&nbsp; DOUBLE JUMP</span>
       </footer>
     </main>
   </div>
@@ -312,6 +312,7 @@
       const GRAVITY = 1520;
       const JUMP_SPEED = -552;
       const WALK_SPEED = 225;
+      const SPRINT_MULTIPLIER = 1.55;
 
       const islands = [
         { x: -80, w: 735 },
@@ -367,7 +368,7 @@
       const toast = document.getElementById('toast');
       const pauseButton = document.getElementById('pause-button');
 
-      const player = { x: 82, y: GROUND - 38, w: 34, h: 38, vx: 0, vy: 0, onGround: true, facing: 1, invulnerable: 0 };
+      const player = { x: 82, y: GROUND - 38, w: 34, h: 38, vx: 0, vy: 0, onGround: true, facing: 1, invulnerable: 0, jumpsRemaining: 2 };
       let fish = [];
       let state = 'ready';
       let cameraX = 0;
@@ -402,7 +403,7 @@
         overlay.hidden = false;
         if (kind === 'ready') {
           overlayTitle.innerHTML = 'Mona &amp; the<br>Mossy Isles';
-          overlayDescription.textContent = 'The tide is turning. Five little fish have vanished into the forest.';
+          overlayDescription.textContent = 'Find all five fish, dodge the crabs, and reach the gate. You can double-jump and sprint!';
           startButton.innerHTML = 'Set out <span aria-hidden="true">→</span>';
           startButton.focus({ preventScroll: true });
         } else if (kind === 'paused') {
@@ -444,6 +445,7 @@
         player.onGround = true;
         player.facing = 1;
         player.invulnerable = 0;
+        player.jumpsRemaining = 2;
         cameraX = 0;
         updateHud();
       }
@@ -480,6 +482,7 @@
         player.vx = 0;
         player.vy = 0;
         player.onGround = true;
+        player.jumpsRemaining = 2;
         player.invulnerable = 1.7;
         cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * .34));
         say(message);
@@ -492,12 +495,15 @@
         const left = keys.has('ArrowLeft') || keys.has('KeyA') || touch.left;
         const right = keys.has('ArrowRight') || keys.has('KeyD') || touch.right;
         const jump = keys.has('Space') || keys.has('ArrowUp') || keys.has('KeyW') || touch.jump;
-        player.vx = (Number(right) - Number(left)) * WALK_SPEED;
+        const sprinting = keys.has('ShiftLeft') || keys.has('ShiftRight');
+        player.vx = (Number(right) - Number(left)) * WALK_SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
         if (player.vx) player.facing = Math.sign(player.vx);
 
-        if (jump && player.onGround && !pressed.has('jump')) {
-          player.vy = JUMP_SPEED;
+        if (jump && !pressed.has('jump') && player.jumpsRemaining > 0) {
+          player.vy = player.jumpsRemaining === 2 ? JUMP_SPEED : JUMP_SPEED * 0.88;
           player.onGround = false;
+          player.jumpsRemaining--;
+          if (player.jumpsRemaining === 1) say('Double jump!');
         }
         if (jump) pressed.add('jump');
         else pressed.delete('jump');
@@ -511,6 +517,7 @@
           player.y = support - player.h;
           player.vy = 0;
           player.onGround = true;
+          player.jumpsRemaining = 2;
         } else {
           player.onGround = false;
         }
