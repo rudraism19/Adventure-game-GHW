@@ -936,6 +936,7 @@
         button.addEventListener('lostpointercapture', release);
       }
 
+      loadLevel(0, false);
       fish = initialFish.map(item => ({ ...item, found: false }));
       resize();
       updateHud();
