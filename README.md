@@ -46,7 +46,8 @@ You start with **3 lives**. Pause, resume, or restart the adventure whenever nee
 | --- | --- | --- |
 | Move left | `←` or `A` | Left button |
 | Move right | `→` or `D` | Right button |
-| Jump | `Space`, `↑`, or `W` | Jump button |
+| Jump / double-jump | `Space`, `↑`, or `W` (press twice) | Jump button (tap twice) |
+| Sprint | Hold `Shift` while moving | — |
 | Pause / resume | `Esc` or pause button | Pause button |
 | Restart | Restart button | Restart button |
 
