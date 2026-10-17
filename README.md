@@ -55,6 +55,8 @@ You start with **3 lives**. Pause, resume, or restart the adventure whenever nee
 
 - 🎨 Pixel-art island scenery rendered on an HTML canvas
 - 🌊 Side-scrolling platform gameplay with gaps and jumps
+- 🗺️ Three levels: Mossy Isles, Ember Grove, and Moonlit Shoals, each with a distinct sky palette and tougher enemies
+- ✨ Temporary power-ups: shield blocks crab hits, speed boost increases running speed, and fish magnet attracts collectibles
 - 🐟 Five collectibles to find before finishing the level
 - 🦀 Roaming crab enemies and a three-life challenge
 - 🏁 Start, pause, restart, victory, and game-over states
