@@ -496,7 +496,7 @@
         const right = keys.has('ArrowRight') || keys.has('KeyD') || touch.right;
         const jump = keys.has('Space') || keys.has('ArrowUp') || keys.has('KeyW') || touch.jump;
         const sprinting = keys.has('ShiftLeft') || keys.has('ShiftRight');
-        player.vx = (Number(right) - Number(left)) * WALK_SPEED * (sprinting ? SPRINT_MULTIPLIER : 1);
+        player.vx = (Number(right) - Number(left)) * WALK_SPEED * (sprinting ? SPRINT_MULTIPLIER : 1) * (activePowerup === 'speed' ? 1.45 : 1);
         if (player.vx) player.facing = Math.sign(player.vx);
 
         if (jump && !pressed.has('jump') && player.jumpsRemaining > 0) {
@@ -535,19 +535,38 @@
           }
           const closeX = Math.abs(player.x + player.w / 2 - enemy.x) < 27;
           const closeY = player.y + player.h > GROUND - 24 && player.y < GROUND + 3;
-          if (closeX && closeY && player.invulnerable <= 0) {
+          if (closeX && closeY && player.invulnerable <= 0 && activePowerup !== 'shield') {
             loseLife('A crab gave Mona a pinch!');
             return;
           }
         }
 
         player.invulnerable = Math.max(0, player.invulnerable - dt);
+        if (activePowerup) {
+          powerupTimer = Math.max(0, powerupTimer - dt);
+          document.getElementById('status-label').textContent = `${activePowerup.toUpperCase()} · ${Math.ceil(powerupTimer)}s`;
+          if (powerupTimer === 0) { activePowerup = null; document.getElementById('status-label').textContent = 'SHIFT SPRINT · DOUBLE JUMP'; say('Power-up expired'); }
+        }
+
+        for (const item of powerups) {
+          if (item.collected) continue;
+          const dx = player.x + player.w / 2 - item.x;
+          const dy = player.y + player.h / 2 - item.y;
+          if (dx * dx + dy * dy < 34 * 34) {
+            item.collected = true;
+            activePowerup = item.type;
+            powerupTimer = 8;
+            const names = { shield: 'Shield: crab hits blocked!', speed: 'Speed boost activated!', magnet: 'Fish magnet activated!' };
+            say(names[item.type]);
+          }
+        }
 
         for (const item of fish) {
           if (item.found) continue;
           const dx = player.x + player.w / 2 - item.x;
           const dy = player.y + player.h / 2 - item.y;
-          if (dx * dx + dy * dy < 33 * 33) {
+          const pickupRadius = activePowerup === 'magnet' ? 150 : 33;
+          if (dx * dx + dy * dy < pickupRadius * pickupRadius) {
             item.found = true;
             collected++;
             updateHud();
@@ -583,9 +602,10 @@
 
       function drawSky() {
         const sky = ctx.createLinearGradient(0, 0, 0, H);
-        sky.addColorStop(0, '#9bdbd1');
-        sky.addColorStop(.67, '#cae8c3');
-        sky.addColorStop(1, '#e8e7b0');
+        const styles = getComputedStyle(document.documentElement);
+        sky.addColorStop(0, styles.getPropertyValue('--level-sky-top').trim() || '#9bdbd1');
+        sky.addColorStop(.67, styles.getPropertyValue('--level-sky-mid').trim() || '#cae8c3');
+        sky.addColorStop(1, styles.getPropertyValue('--level-sky-low').trim() || '#e8e7b0');
         ctx.fillStyle = sky;
         ctx.fillRect(0, 0, W, H);
         rect(763, 67, 32, 32, '#f4cb79');
@@ -732,6 +752,20 @@
         rect(x + 13, GROUND - 9 + bob, 5, 4, '#d17b57');
       }
 
+      function drawPowerup(item) {
+        if (item.collected) return;
+        const x = item.x - cameraX;
+        if (x < -25 || x > W + 25) return;
+        const y = item.y + Math.sin(animationTime * 4 + item.x) * 5;
+        const colors = { shield: '#78c9ee', speed: '#f4c65e', magnet: '#d59bed' };
+        ctx.globalAlpha = .28 + Math.sin(animationTime * 5 + item.x) * .08;
+        rect(x - 17, y - 17, 34, 34, colors[item.type]);
+        ctx.globalAlpha = 1;
+        rect(x - 12, y - 12, 24, 24, colors[item.type]);
+        rect(x - 3, y - 7, 6, 14, '#fff8df');
+        rect(x - 7, y - 3, 14, 6, '#fff8df');
+      }
+
       function drawGate() {
         const x = 4530 - cameraX;
         if (x < -100 || x > W + 100) return;
@@ -793,6 +827,7 @@
           }
         }
         for (const item of fish) drawFish(item);
+        for (const item of powerups) drawPowerup(item);
         drawGate();
         for (const enemy of enemies) drawCrab(enemy);
         drawPlayer();
