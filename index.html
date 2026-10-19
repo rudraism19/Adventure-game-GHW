@@ -395,6 +395,10 @@
       let lastTime = 0;
       let animationTime = 0;
       let toastTimeout;
+      // Explicitly initialize power-up state before the first level is loaded.
+      let powerups = [];
+      let activePowerup = null;
+      let powerupTimer = 0;
 
       function resize() {
         const rect = canvas.getBoundingClientRect();
@@ -897,8 +901,10 @@
 
       function draw() {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = rect.width / W;
-        const scaleY = rect.height / H;
+        // Draw in logical game coordinates, scaled to the canvas backing buffer.
+        // The backing buffer includes devicePixelRatio; CSS dimensions do not.
+        const scaleX = canvas.width / W;
+        const scaleY = canvas.height / H;
         ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
         ctx.imageSmoothingEnabled = false;
         drawSky();
